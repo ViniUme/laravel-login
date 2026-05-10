@@ -33,7 +33,7 @@ it('verifies the users table column types', function () {
         ->and(Schema::getColumnType('users', 'email'))->toBeIn(['varchar', 'string'])
         ->and(Schema::getColumnType('users', 'email_verified_at'))->toBeIn(['timestamp', 'datetime'])
         ->and(Schema::getColumnType('users', 'password'))->toBeIn(['varchar', 'string'])
-        ->and(Schema::getColumnType('users', 'is_active'))->toBeIn(['boolean', 'tinyint(1)'])
+        ->and(Schema::getColumnType('users', 'is_active'))->toBeIn(['bool', 'tinyint(1)'])
         ->and(Schema::getColumnType('users', 'last_login_at'))->toBeIn(['timestamp', 'datetime'])
         ->and(Schema::getColumnType('users', 'remember_token'))->toBeIn(['varchar', 'string'])
         ->and(Schema::getColumnType('users', 'created_at'))->toBeIn(['timestamp', 'datetime'])
