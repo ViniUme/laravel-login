@@ -125,3 +125,92 @@ it('calculates the total price of an order', function () {
     expect($order->total_price)->toBe(100);
 });
 ```
+
+## Model Testing
+
+All Models within this project must strictly adhere to the standard Laravel architecture. Furthermore, it is a mandatory requirement that **EVERY Model has automated tests covering its entire lifecycle (CRUD): Creation, Reading/Editing, and Deletion.**
+
+To ensure the highest level of reliability, Model tests must go beyond simple successful operations and guarantee **Strict Typing** and data integrity at the database/model level. 
+
+### Database Feature Tests as the Source of Truth
+
+The creation strategy for Model tests (e.g., `tests/Feature/Models/UserTest.php`) MUST be entirely based on the corresponding database feature test (e.g., `tests/Feature/Database/UsersDatabaseFeatureTest.php`).
+
+**Rule:** You must map **100% of the columns** tested in the table's feature test to ensure that the Model's creation, updating, and typing tests cover every single field. No field can be omitted from the Model tests.
+
+### Checklist for Mapping Model Characteristics
+
+Before writing a Model test, the developer (or AI) must analyze the Table's Migration and its corresponding Database Feature Test to identify key dynamic characteristics:
+
+1. **Primary Key Type (UUID vs Auto-Increment):**
+   - *Check:* Look for `$table->uuid('id')` in the migration or `->toBeIn(['uuid', ...])` in the database test.
+   - *Action:* If it uses UUID, the Model test must validate the generation and the correct format of the UUID upon creation.
+2. **Soft Deletes:**
+   - *Check:* Look for `$table->softDeletes()` in the migration or the `deleted_at` column in the database test.
+   - *Action:* The deletion test must use Pest's `$this->assertSoftDeleted()` rather than checking for physical removal from the database.
+3. **Data Types and Strict Typing:**
+   - *Check:* Map all types (`boolean`, `integer`, `datetime`, `string`).
+   - *Action:* Write strict typing tests. For example, if a field is `boolean`, write a test ensuring it fails or correctly casts when receiving a `string` or invalid type.
+
+### Pest Writing Pattern for Models
+
+Below is the conceptual structure of how a Model test file should be written using Pest PHP, covering CRUD and Strict Typing:
+
+```php
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
+
+uses(RefreshDatabase::class);
+
+// 1. Creation (C) & UUID mapping
+it('creates a user successfully with valid data and generates a valid uuid', function () {
+    // Arrange & Act
+    $user = User::factory()->create();
+
+    // Assert
+    expect($user)->toBeInstanceOf(User::class)
+        ->and(Str::isUuid($user->id))->toBeTrue();
+        
+    $this->assertDatabaseHas('users', [
+        'id' => $user->id,
+        'email' => $user->email,
+        // Assert all mapped columns here...
+    ]);
+});
+
+// 2. Strict Typing & Validation
+it('enforces strict typing for the is_active boolean field', function () {
+    // Arrange
+    $user = User::factory()->make(['is_active' => 'invalid_string']);
+
+    // Act & Assert
+    // Expect exception at the database level or model cast failure
+    expect(fn() => $user->save())->toThrow(\Exception::class);
+});
+
+// 3. Update (U)
+it('updates a user successfully', function () {
+    // Arrange
+    $user = User::factory()->create(['name' => 'Old Name']);
+
+    // Act
+    $user->update(['name' => 'New Name']);
+
+    // Assert
+    expect($user->fresh()->name)->toBe('New Name');
+});
+
+// 4. Deletion (D) & Soft Deletes mapping
+it('soft deletes a user successfully', function () {
+    // Arrange
+    $user = User::factory()->create();
+
+    // Act
+    $user->delete();
+
+    // Assert
+    // Using Soft Deletes assertion as mapped from the migration
+    $this->assertSoftDeleted('users', ['id' => $user->id]);
+});
+```
