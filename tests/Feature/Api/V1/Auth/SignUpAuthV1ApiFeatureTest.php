@@ -14,7 +14,7 @@ it('should return 201 and create user on valid sign up data', function () {
         'password_confirmation' => 'secretPassword123',
     ];
 
-    $response = $this->postJson('/api/v1/auth/signup', $payload);
+    $response = $this->postJson('/api/v1/auth/sign-up', $payload);
 
     $response->assertStatus(201)
         ->assertJsonStructure([
@@ -45,7 +45,7 @@ it('should return 201 and create user on valid sign up data', function () {
 });
 
 it('should return 422 if required fields are missing', function () {
-    $response = $this->postJson('/api/v1/auth/signup', []);
+    $response = $this->postJson('/api/v1/auth/sign-up', []);
 
     $response->assertStatus(422)
         ->assertJsonValidationErrors([
@@ -63,7 +63,7 @@ it('should return 422 if email format is invalid', function () {
         'password_confirmation' => 'secretPassword123',
     ];
 
-    $response = $this->postJson('/api/v1/auth/signup', $payload);
+    $response = $this->postJson('/api/v1/auth/sign-up', $payload);
 
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['email']);
@@ -82,7 +82,7 @@ it('should return 422 if email is already in use', function () {
         'password_confirmation' => 'secretPassword123',
     ];
 
-    $response = $this->postJson('/api/v1/auth/signup', $payload);
+    $response = $this->postJson('/api/v1/auth/sign-up', $payload);
 
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['email']);
@@ -96,7 +96,7 @@ it('should return 422 if password is less than 8 characters', function () {
         'password_confirmation' => '1234567',
     ];
 
-    $response = $this->postJson('/api/v1/auth/signup', $payload);
+    $response = $this->postJson('/api/v1/auth/sign-up', $payload);
 
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['password']);
@@ -110,7 +110,7 @@ it('should return 422 if password confirmation does not match', function () {
         'password_confirmation' => 'differentPassword123',
     ];
 
-    $response = $this->postJson('/api/v1/auth/signup', $payload);
+    $response = $this->postJson('/api/v1/auth/sign-up', $payload);
 
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['password']);
