@@ -23,7 +23,7 @@ class SignUpAuthV1ApiController extends AuthV1ApiController
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
+        $responseBody = [
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -33,6 +33,8 @@ class SignUpAuthV1ApiController extends AuthV1ApiController
             ],
             'access_token' => $token,
             'token_type' => 'Bearer',
-        ], self::CODE_SUCCESS_CREATED);
+        ];
+
+        return response()->json($responseBody, self::CODE_SUCCESS_CREATED);
     }
 }
