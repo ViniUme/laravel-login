@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
+use App\Enums\HttpStatusCodeEnum;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Api\V1\Auth\SignUpAuthV1ApiRequest;
 use App\Models\User;
@@ -20,7 +21,7 @@ class SignUpAuthV1ApiController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->json([
+        return response()->status(HttpStatusCodeEnum::SUCCESS_CREATED)->json([
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -30,6 +31,6 @@ class SignUpAuthV1ApiController extends Controller
             ],
             'access_token' => $token,
             'token_type' => 'Bearer',
-        ], 201);
+        ]);
     }
 }
