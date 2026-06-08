@@ -3,14 +3,16 @@
 namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Enums\HttpStatusCodeEnum;
-use App\Http\Controllers\Controller;
+use App\Http\Controllers\Api\V1\Auth\AuthV1ApiController;
 use App\Http\Requests\Api\V1\Auth\SignUpAuthV1ApiRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 
-class SignUpAuthV1ApiController extends Controller
+class SignUpAuthV1ApiController extends AuthV1ApiController
 {
+    private const int CODE_SUCCESS_CREATED = HttpStatusCodeEnum::SUCCESS_CREATED->value;
+
     public function __invoke(SignUpAuthV1ApiRequest $request): JsonResponse
     {
         $user = User::create([
@@ -21,7 +23,7 @@ class SignUpAuthV1ApiController extends Controller
 
         $token = $user->createToken('auth_token')->plainTextToken;
 
-        return response()->status(HttpStatusCodeEnum::SUCCESS_CREATED)->json([
+        return response()->json([
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -31,6 +33,6 @@ class SignUpAuthV1ApiController extends Controller
             ],
             'access_token' => $token,
             'token_type' => 'Bearer',
-        ]);
+        ], self::CODE_SUCCESS_CREATED);
     }
 }
