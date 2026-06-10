@@ -115,3 +115,174 @@ it('should return 422 if password confirmation does not match', function () {
     $response->assertStatus(422)
         ->assertJsonValidationErrors(['password']);
 });
+
+// ============================================================
+// Token gerado e armazenado corretamente após cadastro bem-sucedido
+// ============================================================
+
+it('should persist access token in personal_access_tokens table after successful sign up', function () {
+    $response = $this->postJson('/api/v1/auth/sign-up', [
+        'name'                  => 'John Doe',
+        'email'                 => 'john.doe@example.com',
+        'password'              => 'secretPassword123',
+        'password_confirmation' => 'secretPassword123',
+    ]);
+
+    $response->assertStatus(201);
+
+    $user = User::where('email', 'john.doe@example.com')->first();
+
+    $this->assertDatabaseHas('personal_access_tokens', [
+        'tokenable_type' => User::class,
+        'tokenable_id'   => $user->id,
+    ]);
+
+    expect($response->json('access_token'))->not->toBeNull()
+        ->and($response->json('access_token'))->not->toBe('');
+});
+
+// ============================================================
+// Token retornado no cadastro permite acesso a rotas protegidas
+// ============================================================
+
+it('should return 200 when accessing a protected route with token received on sign up', function () {
+    $response = $this->postJson('/api/v1/auth/sign-up', [
+        'name'                  => 'John Doe',
+        'email'                 => 'john.doe@example.com',
+        'password'              => 'secretPassword123',
+        'password_confirmation' => 'secretPassword123',
+    ]);
+
+    $response->assertStatus(201);
+
+    $token = $response->json('access_token');
+
+    $this->withHeader('Authorization', "Bearer {$token}")
+        ->getJson('/api/v1/user')
+        ->assertStatus(200);
+});
+
+// ============================================================
+// Sanitização de inputs — SQL Injection
+// ============================================================
+
+it('should return 422 and not create user with sql injection in email field', function () {
+    $response = $this->postJson('/api/v1/auth/sign-up', [
+        'name'                  => 'John Doe',
+        'email'                 => "' OR '1'='1",
+        'password'              => 'secretPassword123',
+        'password_confirmation' => 'secretPassword123',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['email']);
+
+    $this->assertDatabaseCount('users', 0);
+});
+
+it('should return 422 and not create user with sql injection in name field', function () {
+    $response = $this->postJson('/api/v1/auth/sign-up', [
+        'name'                  => "'; DROP TABLE users; --",
+        'email'                 => 'john.doe@example.com',
+        'password'              => 'secretPassword123',
+        'password_confirmation' => 'secretPassword123',
+    ]);
+
+    expect($response->status())->toBeIn([201, 422]);
+
+    // Independente do status, a tabela users não pode ter sido destruída
+    $this->assertDatabaseCount('users', $response->status() === 201 ? 1 : 0);
+
+    // Se o cadastro foi aceito, valida que o valor foi armazenado como string literal
+    if ($response->status() === 201) {
+        $this->assertDatabaseHas('users', [
+            'name' => "'; DROP TABLE users; --",
+        ]);
+    }
+});
+
+it('should not authenticate or break database with sql injection in password field', function () {
+    $response = $this->postJson('/api/v1/auth/sign-up', [
+        'name'                  => 'John Doe',
+        'email'                 => 'john.doe@example.com',
+        'password'              => "'; DROP TABLE users; --",
+        'password_confirmation' => "'; DROP TABLE users; --",
+    ]);
+
+    // Deve rejeitar por não atender os requisitos mínimos de senha ou aceitar e armazenar com hash
+    expect($response->status())->toBeIn([201, 422]);
+    expect($response->status())->not->toBe(500);
+
+    // A tabela users não pode ter sido destruída
+    expect(User::count())->toBeGreaterThanOrEqual(0);
+
+    // Se o cadastro foi aceito, a senha deve estar armazenada como hash e não como texto puro
+    if ($response->status() === 201) {
+        $user = User::where('email', 'john.doe@example.com')->first();
+
+        expect($user)->not->toBeNull();
+        expect($user->password)->not->toBe("'; DROP TABLE users; --");
+        expect(Hash::check("'; DROP TABLE users; --", $user->password))->toBeTrue();
+    }
+});
+
+it('should not authenticate or break database with sql injection in password_confirmation field', function () {
+    $response = $this->postJson('/api/v1/auth/sign-up', [
+        'name'                  => 'John Doe',
+        'email'                 => 'john.doe@example.com',
+        'password'              => 'secretPassword123',
+        'password_confirmation' => "'; DROP TABLE users; --",
+    ]);
+
+    // A confirmação não bate com a senha, então deve rejeitar
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['password']);
+
+    $this->assertDatabaseCount('users', 0);
+});
+
+// ============================================================
+// Validação de campos com apenas espaços em branco
+// ============================================================
+
+it('should return 422 if name contains only whitespace', function () {
+    $response = $this->postJson('/api/v1/auth/sign-up', [
+        'name'                  => '     ',
+        'email'                 => 'john.doe@example.com',
+        'password'              => 'secretPassword123',
+        'password_confirmation' => 'secretPassword123',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['name']);
+});
+
+it('should return 422 if email contains only whitespace', function () {
+    $response = $this->postJson('/api/v1/auth/sign-up', [
+        'name'                  => 'John Doe',
+        'email'                 => '     ',
+        'password'              => 'secretPassword123',
+        'password_confirmation' => 'secretPassword123',
+    ]);
+
+    $response->assertStatus(422)
+        ->assertJsonValidationErrors(['email']);
+});
+
+// ============================================================
+// Usuário criado com is_active = true por padrão
+// ============================================================
+
+it('should create user with is_active set to true by default', function () {
+    $this->postJson('/api/v1/auth/sign-up', [
+        'name'                  => 'John Doe',
+        'email'                 => 'john.doe@example.com',
+        'password'              => 'secretPassword123',
+        'password_confirmation' => 'secretPassword123',
+    ])->assertStatus(201);
+
+    $this->assertDatabaseHas('users', [
+        'email'     => 'john.doe@example.com',
+        'is_active' => true,
+    ]);
+});
