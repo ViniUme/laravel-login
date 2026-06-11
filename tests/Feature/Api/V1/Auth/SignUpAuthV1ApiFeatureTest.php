@@ -270,10 +270,10 @@ it('should return 422 if email contains only whitespace', function () {
 });
 
 // ============================================================
-// Usuário criado com is_active = true por padrão
+// Usuário criado com is_active = false por padrão
 // ============================================================
 
-it('should create user with is_active set to true by default', function () {
+it('should create user with is_active set to false by default', function () {
     $this->postJson('/api/v1/auth/sign-up', [
         'name'                  => 'John Doe',
         'email'                 => 'john.doe@example.com',
@@ -283,6 +283,6 @@ it('should create user with is_active set to true by default', function () {
 
     $this->assertDatabaseHas('users', [
         'email'     => 'john.doe@example.com',
-        'is_active' => true,
+        'is_active' => false,
     ]);
 });
