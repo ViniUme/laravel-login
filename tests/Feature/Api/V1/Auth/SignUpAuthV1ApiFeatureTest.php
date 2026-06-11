@@ -7,7 +7,7 @@ use App\Enums\HttpStatusCodeEnum as Status;
 
 uses(RefreshDatabase::class);
 
-beforeEach(function () {
+beforeEach(function (): void {
     $this->signUpUrl = route('api.v1.auth.sign-up');
 });
 
