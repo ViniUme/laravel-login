@@ -7,6 +7,10 @@ use App\Enums\HttpStatusCodeEnum as Status;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function () {
+    $this->signUpUrl = route('api.v1.auth.sign-up');
+});
+
 it('should return 201 and create user on valid sign up data', function () {
     $payload = [
         'name' => 'John Doe',
@@ -15,7 +19,7 @@ it('should return 201 and create user on valid sign up data', function () {
         'password_confirmation' => 'secretPassword123',
     ];
 
-    $response = $this->postJson('/api/v1/auth/sign-up', $payload);
+    $response = $this->postJson($this->signUpUrl, $payload);
 
     $response->assertStatus(Status::SUCCESS_CREATED->value)
         ->assertJsonStructure([
@@ -46,7 +50,7 @@ it('should return 201 and create user on valid sign up data', function () {
 });
 
 it('should return 422 if required fields are missing', function () {
-    $response = $this->postJson('/api/v1/auth/sign-up', []);
+    $response = $this->postJson($this->signUpUrl, []);
 
     $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors([
@@ -64,7 +68,7 @@ it('should return 422 if email format is invalid', function () {
         'password_confirmation' => 'secretPassword123',
     ];
 
-    $response = $this->postJson('/api/v1/auth/sign-up', $payload);
+    $response = $this->postJson($this->signUpUrl, $payload);
 
     $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors(['email']);
@@ -83,7 +87,7 @@ it('should return 422 if email is already in use', function () {
         'password_confirmation' => 'secretPassword123',
     ];
 
-    $response = $this->postJson('/api/v1/auth/sign-up', $payload);
+    $response = $this->postJson($this->signUpUrl, $payload);
 
     $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors(['email']);
@@ -97,7 +101,7 @@ it('should return 422 if password is less than 8 characters', function () {
         'password_confirmation' => '1234567',
     ];
 
-    $response = $this->postJson('/api/v1/auth/sign-up', $payload);
+    $response = $this->postJson($this->signUpUrl, $payload);
 
     $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors(['password']);
@@ -111,7 +115,7 @@ it('should return 422 if password confirmation does not match', function () {
         'password_confirmation' => 'differentPassword123',
     ];
 
-    $response = $this->postJson('/api/v1/auth/sign-up', $payload);
+    $response = $this->postJson($this->signUpUrl, $payload);
 
     $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors(['password']);
@@ -122,7 +126,7 @@ it('should return 422 if password confirmation does not match', function () {
 // ============================================================
 
 it('should persist access token in personal_access_tokens table after successful sign up', function () {
-    $response = $this->postJson('/api/v1/auth/sign-up', [
+    $response = $this->postJson($this->signUpUrl, [
         'name'                  => 'John Doe',
         'email'                 => 'john.doe@example.com',
         'password'              => 'secretPassword123',
@@ -147,7 +151,7 @@ it('should persist access token in personal_access_tokens table after successful
 // ============================================================
 
 it('should return 200 when accessing a protected route with token received on sign up', function () {
-    $response = $this->postJson('/api/v1/auth/sign-up', [
+    $response = $this->postJson($this->signUpUrl, [
         'name'                  => 'John Doe',
         'email'                 => 'john.doe@example.com',
         'password'              => 'secretPassword123',
@@ -168,7 +172,7 @@ it('should return 200 when accessing a protected route with token received on si
 // ============================================================
 
 it('should return 422 and not create user with sql injection in email field', function () {
-    $response = $this->postJson('/api/v1/auth/sign-up', [
+    $response = $this->postJson($this->signUpUrl, [
         'name'                  => 'John Doe',
         'email'                 => "' OR '1'='1",
         'password'              => 'secretPassword123',
@@ -182,7 +186,7 @@ it('should return 422 and not create user with sql injection in email field', fu
 });
 
 it('should return 422 and not create user with sql injection in name field', function () {
-    $response = $this->postJson('/api/v1/auth/sign-up', [
+    $response = $this->postJson($this->signUpUrl, [
         'name'                  => "'; DROP TABLE users; --",
         'email'                 => 'john.doe@example.com',
         'password'              => 'secretPassword123',
@@ -208,7 +212,7 @@ it('should return 422 and not create user with sql injection in name field', fun
 });
 
 it('should not authenticate or break database with sql injection in password field', function () {
-    $response = $this->postJson('/api/v1/auth/sign-up', [
+    $response = $this->postJson($this->signUpUrl, [
         'name'                  => 'John Doe',
         'email'                 => 'john.doe@example.com',
         'password'              => "'; DROP TABLE users; --",
@@ -237,7 +241,7 @@ it('should not authenticate or break database with sql injection in password fie
 });
 
 it('should not authenticate or break database with sql injection in password_confirmation field', function () {
-    $response = $this->postJson('/api/v1/auth/sign-up', [
+    $response = $this->postJson($this->signUpUrl, [
         'name'                  => 'John Doe',
         'email'                 => 'john.doe@example.com',
         'password'              => 'secretPassword123',
@@ -256,7 +260,7 @@ it('should not authenticate or break database with sql injection in password_con
 // ============================================================
 
 it('should return 422 if name contains only whitespace', function () {
-    $response = $this->postJson('/api/v1/auth/sign-up', [
+    $response = $this->postJson($this->signUpUrl, [
         'name'                  => '     ',
         'email'                 => 'john.doe@example.com',
         'password'              => 'secretPassword123',
@@ -268,7 +272,7 @@ it('should return 422 if name contains only whitespace', function () {
 });
 
 it('should return 422 if email contains only whitespace', function () {
-    $response = $this->postJson('/api/v1/auth/sign-up', [
+    $response = $this->postJson($this->signUpUrl, [
         'name'                  => 'John Doe',
         'email'                 => '     ',
         'password'              => 'secretPassword123',
@@ -284,7 +288,7 @@ it('should return 422 if email contains only whitespace', function () {
 // ============================================================
 
 it('should create user with is_active set to false by default', function () {
-    $this->postJson('/api/v1/auth/sign-up', [
+    $this->postJson($this->signUpUrl, [
         'name'                  => 'John Doe',
         'email'                 => 'john.doe@example.com',
         'password'              => 'secretPassword123',
