@@ -3,6 +3,7 @@
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Enums\HttpStatusCodeEnum as Status;
 
 uses(RefreshDatabase::class);
 
@@ -16,7 +17,7 @@ it('should return 201 and create user on valid sign up data', function () {
 
     $response = $this->postJson('/api/v1/auth/sign-up', $payload);
 
-    $response->assertStatus(201)
+    $response->assertStatus(Status::SUCCESS_CREATED->value)
         ->assertJsonStructure([
             'user' => [
                 'id',
@@ -47,7 +48,7 @@ it('should return 201 and create user on valid sign up data', function () {
 it('should return 422 if required fields are missing', function () {
     $response = $this->postJson('/api/v1/auth/sign-up', []);
 
-    $response->assertStatus(422)
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors([
             'name',
             'email',
@@ -65,7 +66,7 @@ it('should return 422 if email format is invalid', function () {
 
     $response = $this->postJson('/api/v1/auth/sign-up', $payload);
 
-    $response->assertStatus(422)
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors(['email']);
 });
 
@@ -84,7 +85,7 @@ it('should return 422 if email is already in use', function () {
 
     $response = $this->postJson('/api/v1/auth/sign-up', $payload);
 
-    $response->assertStatus(422)
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors(['email']);
 });
 
@@ -98,7 +99,7 @@ it('should return 422 if password is less than 8 characters', function () {
 
     $response = $this->postJson('/api/v1/auth/sign-up', $payload);
 
-    $response->assertStatus(422)
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors(['password']);
 });
 
@@ -112,7 +113,7 @@ it('should return 422 if password confirmation does not match', function () {
 
     $response = $this->postJson('/api/v1/auth/sign-up', $payload);
 
-    $response->assertStatus(422)
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors(['password']);
 });
 
@@ -128,7 +129,7 @@ it('should persist access token in personal_access_tokens table after successful
         'password_confirmation' => 'secretPassword123',
     ]);
 
-    $response->assertStatus(201);
+    $response->assertStatus(Status::SUCCESS_CREATED->value);
 
     $user = User::where('email', 'john.doe@example.com')->first();
 
@@ -153,13 +154,13 @@ it('should return 200 when accessing a protected route with token received on si
         'password_confirmation' => 'secretPassword123',
     ]);
 
-    $response->assertStatus(201);
+    $response->assertStatus(Status::SUCCESS_CREATED->value);
 
     $token = $response->json('access_token');
 
     $this->withHeader('Authorization', "Bearer {$token}")
         ->getJson('/api/v1/user')
-        ->assertStatus(200);
+        ->assertStatus(Status::SUCCESS_OK->value);
 });
 
 // ============================================================
@@ -174,7 +175,7 @@ it('should return 422 and not create user with sql injection in email field', fu
         'password_confirmation' => 'secretPassword123',
     ]);
 
-    $response->assertStatus(422)
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors(['email']);
 
     $this->assertDatabaseCount('users', 0);
@@ -188,13 +189,18 @@ it('should return 422 and not create user with sql injection in name field', fun
         'password_confirmation' => 'secretPassword123',
     ]);
 
-    expect($response->status())->toBeIn([201, 422]);
+    $acceptedValues = [
+        Status::SUCCESS_CREATED->value,
+        Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value
+    ];
+
+    expect($response->status())->toBeIn($acceptedValues);
 
     // Independente do status, a tabela users não pode ter sido destruída
-    $this->assertDatabaseCount('users', $response->status() === 201 ? 1 : 0);
+    $this->assertDatabaseCount('users', $response->status() === Status::SUCCESS_CREATED->value ? 1 : 0);
 
     // Se o cadastro foi aceito, valida que o valor foi armazenado como string literal
-    if ($response->status() === 201) {
+    if ($response->status() === Status::SUCCESS_CREATED->value) {
         $this->assertDatabaseHas('users', [
             'name' => "'; DROP TABLE users; --",
         ]);
@@ -210,14 +216,18 @@ it('should not authenticate or break database with sql injection in password fie
     ]);
 
     // Deve rejeitar por não atender os requisitos mínimos de senha ou aceitar e armazenar com hash
-    expect($response->status())->toBeIn([201, 422]);
-    expect($response->status())->not->toBe(500);
+    $acceptedValues = [
+        Status::SUCCESS_CREATED->value,
+        Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value
+    ];
+    expect($response->status())->toBeIn($acceptedValues);
+    expect($response->status())->not->toBe(Status::SERVER_ERROR_INTERNAL->value);
 
     // A tabela users não pode ter sido destruída
     expect(User::count())->toBeGreaterThanOrEqual(0);
 
     // Se o cadastro foi aceito, a senha deve estar armazenada como hash e não como texto puro
-    if ($response->status() === 201) {
+    if ($response->status() === Status::SUCCESS_CREATED->value) {
         $user = User::where('email', 'john.doe@example.com')->first();
 
         expect($user)->not->toBeNull();
@@ -235,7 +245,7 @@ it('should not authenticate or break database with sql injection in password_con
     ]);
 
     // A confirmação não bate com a senha, então deve rejeitar
-    $response->assertStatus(422)
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors(['password']);
 
     $this->assertDatabaseCount('users', 0);
@@ -253,7 +263,7 @@ it('should return 422 if name contains only whitespace', function () {
         'password_confirmation' => 'secretPassword123',
     ]);
 
-    $response->assertStatus(422)
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors(['name']);
 });
 
@@ -265,7 +275,7 @@ it('should return 422 if email contains only whitespace', function () {
         'password_confirmation' => 'secretPassword123',
     ]);
 
-    $response->assertStatus(422)
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors(['email']);
 });
 
@@ -279,7 +289,7 @@ it('should create user with is_active set to false by default', function () {
         'email'                 => 'john.doe@example.com',
         'password'              => 'secretPassword123',
         'password_confirmation' => 'secretPassword123',
-    ])->assertStatus(201);
+    ])->assertStatus(Status::SUCCESS_CREATED->value);
 
     $this->assertDatabaseHas('users', [
         'email'     => 'john.doe@example.com',
