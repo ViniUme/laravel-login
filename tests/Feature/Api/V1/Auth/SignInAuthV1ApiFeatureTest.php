@@ -4,6 +4,7 @@ use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use App\Enums\HttpStatusCodeEnum as Status;
 
 uses(RefreshDatabase::class);
 
@@ -16,7 +17,7 @@ it('should return 422 if email field is missing', function () {
         'password' => 'secretPassword123',
     ]);
 
-    $response->assertStatus(422)
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors(['email']);
 });
 
@@ -25,7 +26,7 @@ it('should return 422 if usinfield is missing', function () {
         'email' => 'john.doe@example.com',
     ]);
 
-    $response->assertStatus(422)
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors(['password']);
 });
 
@@ -39,7 +40,7 @@ it('should return 422 if email format is invalid', function () {
         'password' => 'secretPassword123',
     ]);
 
-    $response->assertStatus(422)
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value)
         ->assertJsonValidationErrors(['email']);
 });
 
@@ -84,7 +85,7 @@ it('should return 200 with token and user data on valid credentials', function (
         'password' => $plainPassword,
     ]);
 
-    $response->assertStatus(200)
+    $response->assertStatus(Status::SUCCESS_OK->value)
         ->assertJsonStructure([
             'user' => [
                 'id',
@@ -115,7 +116,7 @@ it('should return 401 when user does not exist', function () {
         'password' => 'secretPassword123',
     ]);
 
-    $response->assertStatus(401);
+    $response->assertStatus(Status::CLIENT_ERROR_UNAUTHORIZED->value);
 });
 
 // ============================================================
@@ -134,7 +135,7 @@ it('should return 401 when password is incorrect', function () {
         'password' => 'wrongPassword456',
     ]);
 
-    $response->assertStatus(401);
+    $response->assertStatus(Status::CLIENT_ERROR_UNAUTHORIZED->value);
 });
 
 // ============================================================
@@ -158,8 +159,8 @@ it('should return identical generic error message for nonexistent user and wrong
         'password' => 'wrongPassword456',
     ]);
 
-    $responseNonexistent->assertStatus(401);
-    $responseWrongPassword->assertStatus(401);
+    $responseNonexistent->assertStatus(Status::CLIENT_ERROR_UNAUTHORIZED->value);
+    $responseWrongPassword->assertStatus(Status::CLIENT_ERROR_UNAUTHORIZED->value);
 
     // As mensagens de erro devem ser idênticas para não vazar informação de enumeração
     expect($responseNonexistent->json('message'))
@@ -184,7 +185,7 @@ it('should return 401 when user account is inactive', function () {
         'password' => $plainPassword,
     ]);
 
-    $response->assertStatus(401);
+    $response->assertStatus(Status::CLIENT_ERROR_UNAUTHORIZED->value);
 });
 
 it('should return 401 when user account is soft deleted (banned)', function () {
@@ -203,7 +204,7 @@ it('should return 401 when user account is soft deleted (banned)', function () {
         'password' => $plainPassword,
     ]);
 
-    $response->assertStatus(401);
+    $response->assertStatus(Status::CLIENT_ERROR_UNAUTHORIZED->value);
 });
 
 // ============================================================
@@ -233,7 +234,7 @@ it('should block requests after too many consecutive failed login attempts', fun
         'password' => 'wrongPassword',
     ]);
 
-    $response->assertStatus(429);
+    $response->assertStatus(Status::CLIENT_ERROR_TOO_MANY_REQUESTS->value);
 });
 
 // ============================================================
@@ -247,8 +248,8 @@ it('should not authenticate with sql injection attempt in email field', function
     ]);
 
     // Deve falhar na validação de formato ou retornar não autorizado — nunca 200
-    expect($response->status())->not->toBe(200);
-    $response->assertStatus(422);
+    expect($response->status())->not->toBe(Status::SUCCESS_OK->value);
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value);
 });
 
 it('should not authenticate with malicious characters in password field', function () {
@@ -258,8 +259,12 @@ it('should not authenticate with malicious characters in password field', functi
     ]);
 
     // Deve retornar 401 ou 422 — nunca 200
-    expect($response->status())->toBeIn([401, 422]);
-    expect($response->status())->not->toBe(200);
+    $acceptedCodes = [
+        Status::CLIENT_ERROR_UNAUTHORIZED->value,
+        Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value
+    ];
+    expect($response->status())->toBeIn($acceptedCodes);
+    expect($response->status())->not->toBe(Status::SUCCESS_OK->value);
 });
 
 // ============================================================
@@ -280,7 +285,7 @@ it('should persist access token in personal_access_tokens table after successful
         'password' => $plainPassword,
     ]);
 
-    $response->assertStatus(200);
+    $response->assertStatus(Status::SUCCESS_OK->value);
 
     // Valida que o token foi de fato salvo no banco
     $this->assertDatabaseHas('personal_access_tokens', [
@@ -300,7 +305,7 @@ it('should persist access token in personal_access_tokens table after successful
 it('should return 401 when unauthenticated user tries to access a protected route', function () {
     $response = $this->getJson('/api/v1/user');
 
-    $response->assertStatus(401);
+    $response->assertStatus(Status::CLIENT_ERROR_UNAUTHORIZED->value);
 });
 
 it('should return 200 when authenticated user accesses a protected route with valid token', function () {
@@ -317,12 +322,12 @@ it('should return 200 when authenticated user accesses a protected route with va
         'password' => $plainPassword,
     ]);
 
-    $loginResponse->assertStatus(200);
+    $loginResponse->assertStatus(Status::SUCCESS_OK->value);
 
     $token = $loginResponse->json('access_token');
 
     $protectedResponse = $this->withHeader('Authorization', "Bearer {$token}")
         ->getJson('/api/v1/user');
 
-    $protectedResponse->assertStatus(200);
+    $protectedResponse->assertStatus(Status::SUCCESS_OK->value);
 });
