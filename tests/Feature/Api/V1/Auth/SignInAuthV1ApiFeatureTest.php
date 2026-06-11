@@ -8,12 +8,16 @@ use App\Enums\HttpStatusCodeEnum as Status;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function (): void {
+    $this->signInUrl = route('api.v1.auth.sign-in');
+});
+
 // ============================================================
 // Validação de presença de campos obrigatórios
 // ============================================================
 
 it('should return 422 if email field is missing', function () {
-    $response = $this->postJson('/api/v1/auth/sign-in', [
+    $response = $this->postJson($this->signInUrl, [
         'password' => 'secretPassword123',
     ]);
 
@@ -22,7 +26,7 @@ it('should return 422 if email field is missing', function () {
 });
 
 it('should return 422 if usinfield is missing', function () {
-    $response = $this->postJson('/api/v1/auth/sign-in', [
+    $response = $this->postJson($this->signInUrl, [
         'email' => 'john.doe@example.com',
     ]);
 
@@ -35,7 +39,7 @@ it('should return 422 if usinfield is missing', function () {
 // ============================================================
 
 it('should return 422 if email format is invalid', function () {
-    $response = $this->postJson('/api/v1/auth/sign-in', [
+    $response = $this->postJson($this->signInUrl, [
         'email' => 'invalid-email-format.com',
         'password' => 'secretPassword123',
     ]);
@@ -80,7 +84,7 @@ it('should return 200 with token and user data on valid credentials', function (
         'is_active' => true,
     ]);
 
-    $response = $this->postJson('/api/v1/auth/sign-in', [
+    $response = $this->postJson($this->signInUrl, [
         'email' => 'john.doe@example.com',
         'password' => $plainPassword,
     ]);
@@ -111,7 +115,7 @@ it('should return 200 with token and user data on valid credentials', function (
 // ============================================================
 
 it('should return 401 when user does not exist', function () {
-    $response = $this->postJson('/api/v1/auth/sign-in', [
+    $response = $this->postJson($this->signInUrl, [
         'email' => 'nonexistent@example.com',
         'password' => 'secretPassword123',
     ]);
@@ -130,7 +134,7 @@ it('should return 401 when password is incorrect', function () {
         'is_active' => true,
     ]);
 
-    $response = $this->postJson('/api/v1/auth/sign-in', [
+    $response = $this->postJson($this->signInUrl, [
         'email' => 'john.doe@example.com',
         'password' => 'wrongPassword456',
     ]);
@@ -149,12 +153,12 @@ it('should return identical generic error message for nonexistent user and wrong
         'is_active' => true,
     ]);
 
-    $responseNonexistent = $this->postJson('/api/v1/auth/sign-in', [
+    $responseNonexistent = $this->postJson($this->signInUrl, [
         'email' => 'ghost@example.com',
         'password' => 'anyPassword123',
     ]);
 
-    $responseWrongPassword = $this->postJson('/api/v1/auth/sign-in', [
+    $responseWrongPassword = $this->postJson($this->signInUrl, [
         'email' => 'john.doe@example.com',
         'password' => 'wrongPassword456',
     ]);
@@ -180,7 +184,7 @@ it('should return 401 when user account is inactive', function () {
         'is_active' => false,
     ]);
 
-    $response = $this->postJson('/api/v1/auth/sign-in', [
+    $response = $this->postJson($this->signInUrl, [
         'email' => 'inactive@example.com',
         'password' => $plainPassword,
     ]);
@@ -199,7 +203,7 @@ it('should return 401 when user account is soft deleted (banned)', function () {
 
     $user->delete();
 
-    $response = $this->postJson('/api/v1/auth/sign-in', [
+    $response = $this->postJson($this->signInUrl, [
         'email' => 'banned@example.com',
         'password' => $plainPassword,
     ]);
@@ -222,14 +226,14 @@ it('should block requests after too many consecutive failed login attempts', fun
     $maxAttempts = 5;
 
     for ($i = 0; $i < $maxAttempts; $i++) {
-        $this->postJson('/api/v1/auth/sign-in', [
+        $this->postJson($this->signInUrl, [
             'email' => 'john.doe@example.com',
             'password' => 'wrongPassword',
         ]);
     }
 
     // A próxima requisição deve ser bloqueada por rate limiting
-    $response = $this->postJson('/api/v1/auth/sign-in', [
+    $response = $this->postJson($this->signInUrl, [
         'email' => 'john.doe@example.com',
         'password' => 'wrongPassword',
     ]);
@@ -242,7 +246,7 @@ it('should block requests after too many consecutive failed login attempts', fun
 // ============================================================
 
 it('should not authenticate with sql injection attempt in email field', function () {
-    $response = $this->postJson('/api/v1/auth/sign-in', [
+    $response = $this->postJson($this->signInUrl, [
         'email' => "' OR '1'='1",
         'password' => 'anyPassword123',
     ]);
@@ -253,7 +257,7 @@ it('should not authenticate with sql injection attempt in email field', function
 });
 
 it('should not authenticate with malicious characters in password field', function () {
-    $response = $this->postJson('/api/v1/auth/sign-in', [
+    $response = $this->postJson($this->signInUrl, [
         'email' => 'john.doe@example.com',
         'password' => "'; DROP TABLE users; --",
     ]);
@@ -280,7 +284,7 @@ it('should persist access token in personal_access_tokens table after successful
         'is_active' => true,
     ]);
 
-    $response = $this->postJson('/api/v1/auth/sign-in', [
+    $response = $this->postJson($this->signInUrl, [
         'email' => 'john.doe@example.com',
         'password' => $plainPassword,
     ]);
@@ -317,7 +321,7 @@ it('should return 200 when authenticated user accesses a protected route with va
         'is_active' => true,
     ]);
 
-    $loginResponse = $this->postJson('/api/v1/auth/sign-in', [
+    $loginResponse = $this->postJson($this->signInUrl, [
         'email' => 'john.doe@example.com',
         'password' => $plainPassword,
     ]);
