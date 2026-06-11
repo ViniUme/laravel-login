@@ -19,7 +19,8 @@ class SignInAuthV1ApiController extends AuthV1ApiController
     {
         $user = User::where('email', $request->email)->first();
 
-        if (!$user || !Hash::check($request->password, $user->password) || !$user->is_active) {
+        $isUnauthorizedUser = self::isUnauthorizedUser($user, $request);
+        if ($isUnauthorizedUser) {
             return response()->json(['message' => 'Unauthorized'], self::CODE_UNAUTHORIZED);
         }
 
@@ -37,5 +38,18 @@ class SignInAuthV1ApiController extends AuthV1ApiController
         ];
 
         return response()->json($responseBody, self::CODE_SUCCESS_OK);
+    }
+
+    private function isUnauthorizedUser(User|null $user, SignInAuthV1ApiRequest $request): bool
+    {
+        $invalidUser = !$user;
+        if ($invalidUser) return true;
+
+        $isInvalidPassword = !Hash::check($request->password, $user->password);
+        $isInactiveUser = !$user->is_active;
+
+        $isUnauthorizedUser = $isInvalidPassword || $isInactiveUser;
+
+        return $isUnauthorizedUser;
     }
 }
