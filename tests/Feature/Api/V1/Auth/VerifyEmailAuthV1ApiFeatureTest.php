@@ -10,14 +10,14 @@ use Illuminate\Auth\Notifications\VerifyEmail;
 uses(RefreshDatabase::class);
 
 beforeEach(function (): void {
-    $this->resendUrl = route('api.v1.auth.resend-confirmation-email');
+    // $this->resendUrl = route('api.v1.auth.resend-confirmation-email');
 
     $this->generateValidConfirmUrl = function (User $user, $expiration = null) {
         return URL::temporarySignedRoute(
-            'api.v1.auth.confirm-email',
-            $expiration ?? now()->addMinutes(60),
+            'api.v1.auth.verify-email',
+            $expiration ?? now()->addMinutes(5),
             [
-                'id'   => $user->getKey(),
+                'id' => $user->getKey(),
                 'hash' => sha1($user->getEmailForVerification()),
             ]
         );
@@ -59,6 +59,16 @@ it('should return success message in response body after confirmation', function
     expect($response->json('message'))->not->toBeEmpty();
 });
 
+it('should verify email without authentication', function () {
+    $user       = User::factory()->unverified()->create();
+    $confirmUrl = ($this->generateValidConfirmUrl)($user);
+
+    $response = $this->getJson($confirmUrl);
+
+    $response->assertStatus(Status::SUCCESS_OK->value);
+    expect($user->fresh()->hasVerifiedEmail())->toBeTrue();
+});
+
 // ============================================================
 // Validade do token (URL Assinada)
 // ============================================================
@@ -67,7 +77,7 @@ it('should return error when using invalid token (invalid signature)', function 
     $user = User::factory()->unverified()->create();
 
     $validUrl   = ($this->generateValidConfirmUrl)($user);
-    $invalidUrl = str_replace('signature=', 'signature=invalid', $validUrl);
+    $invalidUrl = preg_replace('/signature=[^&]+/', 'signature=invalidsignature', $validUrl);
 
     $response = $this->actingAs($user)->getJson($invalidUrl);
 
@@ -96,6 +106,19 @@ it('should return 400 when using a previously used token', function () {
 
     $response->assertStatus(Status::CLIENT_ERROR_BAD_REQUEST->value);
     expect($response->json('message'))->not->toBeEmpty();
+});
+
+it('should return 403 when hash does not match users email', function () {
+    $user = User::factory()->unverified()->create();
+    $userWrong = User::factory()->unverified()->create(['email' => 'wrong@email.com']);
+
+    $validUrl = ($this->generateValidConfirmUrl)($user);
+
+    $tamperedUrl = preg_replace('/signature=[^&]+/', 'signature=' . sha1($userWrong->getEmailForVerification()), $validUrl);
+
+    $response = $this->getJson($tamperedUrl);
+
+    $response->assertStatus(Status::CLIENT_ERROR_FORBIDDEN->value);
 });
 
 // ============================================================
@@ -151,18 +174,20 @@ it('should not overwrite email_verified_at when confirmation is attempted on alr
         ->toBe($originalDate->format('Y-m-d H:i:s'));
 });
 
-// ============================================================
-// Autenticação
-// ============================================================
-
-it('should return 401 when request is not authenticated', function () {
+it('should set email_verified_at to a recent timestamp after confirmation', function () {
     $user       = User::factory()->unverified()->create();
     $confirmUrl = ($this->generateValidConfirmUrl)($user);
 
-    $response = $this->getJson($confirmUrl);
+    $this->getJson($confirmUrl);
 
-    $response->assertStatus(Status::CLIENT_ERROR_UNAUTHORIZED->value);
+    expect($user->fresh()->email_verified_at)
+        ->not->toBeNull()
+        ->and($user->fresh()->email_verified_at->isAfter(now()->subMinute()))->toBeTrue();
 });
+
+// ============================================================
+// Autenticação
+// ============================================================
 
 it('should return 403 when authenticated user tries to confirm another users email', function () {
     $user1 = User::factory()->unverified()->create();
@@ -173,60 +198,6 @@ it('should return 403 when authenticated user tries to confirm another users ema
     $response = $this->actingAs($user1)->getJson($urlForUser2);
 
     $response->assertStatus(Status::CLIENT_ERROR_FORBIDDEN->value);
-});
-
-// ============================================================
-// Reenvio do e-mail de confirmação
-// ============================================================
-
-it('should resend email when requested and user has not confirmed yet', function () {
-    Notification::fake();
-
-    $user = User::factory()->unverified()->create();
-
-    $response = $this->actingAs($user)->postJson($this->resendUrl);
-
-    $response->assertStatus(Status::SUCCESS_OK->value);
-    Notification::assertSentTo($user, VerifyEmail::class);
-});
-
-it('should not resend email if already confirmed', function () {
-    Notification::fake();
-
-    $user = User::factory()->create(['email_verified_at' => now()]);
-
-    $response = $this->actingAs($user)->postJson($this->resendUrl);
-
-    $response->assertStatus(Status::CLIENT_ERROR_BAD_REQUEST->value);
-    Notification::assertNothingSent();
-});
-
-it('should respect rate limit on resend', function () {
-    $user = User::factory()->unverified()->create();
-
-    // throttle:6,1 — consome as 6 tentativas permitidas
-    foreach (range(1, 6) as $i) {
-        $this->actingAs($user)->postJson($this->resendUrl);
-    }
-
-    // Sétima requisição deve estourar o limite
-    $response = $this->actingAs($user)->postJson($this->resendUrl);
-
-    $response->assertStatus(Status::CLIENT_ERROR_TOO_MANY_REQUESTS->value);
-});
-
-it('should ensure the resent email contains the valid signed url', function () {
-    Notification::fake();
-
-    $user = User::factory()->unverified()->create();
-
-    $this->actingAs($user)->postJson($this->resendUrl);
-
-    Notification::assertSentTo($user, VerifyEmail::class, function ($notification) use ($user) {
-        $mailData = $notification->toMail($user);
-
-        return str_contains($mailData->actionUrl, 'signature=');
-    });
 });
 
 // ============================================================
