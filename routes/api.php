@@ -14,9 +14,13 @@ Route::prefix('v1')->group(function () {
         Route::post('sign-in', SignInAuthV1ApiController::class)->middleware('throttle:5,1')->name('api.v1.auth.sign-in');
         Route::post('reset-password', ResetPasswordAuthV1ApiController::class)->middleware('throttle:5,1')->name('api.v1.auth.reset-password');
 
-        Route::get('email/verify/{id}/{hash}', VerifyEmailAuthV1ApiController::class)
-            ->middleware('signed')
+        Route::get('email/verify', VerifyEmailAuthV1ApiController::class)
+            ->middleware('throttle:6,1')
             ->name('api.v1.auth.verify-email');
+
+        Route::post('email/resend', SendVerifyEmailAuthV1ApiController::class)
+            ->middleware('throttle:6,1')
+            ->name('api.v1.auth.resend-verify-email');
     });
 
     Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
