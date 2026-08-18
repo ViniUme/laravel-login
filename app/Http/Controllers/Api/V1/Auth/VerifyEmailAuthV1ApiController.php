@@ -2,53 +2,63 @@
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
-use Illuminate\Http\Request;
-use App\Enums\HttpStatusCodeEnum as Status;
+use App\Enums\HttpStatusCodeEnum;
+use App\Models\EmailVerification;
 use Illuminate\Auth\Events\Verified;
-use App\Models\User;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class VerifyEmailAuthV1ApiController extends AuthV1ApiController
 {
-    public function __invoke(Request $request, string $id, string $hash)
+    private const int CODE_SUCCESS_OK = HttpStatusCodeEnum::SUCCESS_OK->value;
+
+    private const int CODE_BAD_REQUEST = HttpStatusCodeEnum::CLIENT_ERROR_BAD_REQUEST->value;
+
+    public function __invoke(Request $request): JsonResponse
     {
-        if (! $request->hasValidSignature()) {
+        $token = $request->query('token');
+
+        if (! is_string($token) || trim($token) === '') {
             return response()->json([
-                'message' => 'Invalid or expired verification link.'
-            ], Status::CLIENT_ERROR_FORBIDDEN->value);
+                'message' => 'Token is required.',
+            ], self::CODE_BAD_REQUEST);
         }
 
-        if ($request->user() && $request->user()->id !== $id) {
+        $tokenHash = hash('sha256', $token);
+
+        $verification = EmailVerification::with('user')
+            ->where('token_hash', $tokenHash)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if (! $verification || ! $verification->user) {
             return response()->json([
-                'message' => 'This verification link does not belong to you.'
-            ], Status::CLIENT_ERROR_FORBIDDEN->value);
+                'message' => 'Invalid or expired verification token.',
+            ], self::CODE_BAD_REQUEST);
         }
 
-        $user = User::find($id);
-
-        if (! $user) {
-            return response()->json([
-                'message' => 'Unauthorized.'
-            ], Status::CLIENT_ERROR_UNAUTHORIZED->value);
-        }
-
-        // Garante que o hash da URL corresponde ao e-mail do usuário
-        if (! hash_equals($hash, sha1($user->email))) {
-            return response()->json([
-                'message' => 'Invalid verification link.'
-            ], Status::CLIENT_ERROR_FORBIDDEN->value);
-        }
+        $user = $verification->user;
 
         if ($user->hasVerifiedEmail()) {
+            $verification->delete();
+
             return response()->json([
-                'message' => 'This e-mail is already verified.'
-            ], Status::CLIENT_ERROR_BAD_REQUEST->value);
+                'message' => 'This e-mail is already verified.',
+            ], self::CODE_BAD_REQUEST);
         }
 
-        $user->markEmailAsVerified();
-        event(new Verified($user));
+        DB::transaction(function () use ($user): void {
+            // Delete all pending verification tokens for this user (single-use guarantee)
+            EmailVerification::where('user_id', $user->id)->delete();
+
+            $user->markEmailAsVerified();
+
+            event(new Verified($user));
+        });
 
         return response()->json([
-            'message' => 'Verified e-mail with success.'
-        ], Status::SUCCESS_OK->value);
+            'message' => 'Email verified successfully.',
+        ], self::CODE_SUCCESS_OK);
     }
 }
