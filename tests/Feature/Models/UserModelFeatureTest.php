@@ -1,7 +1,8 @@
 <?php
 
-use App\Models\User;
+use App\Models\EmailVerification;
 use App\Models\Role;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
@@ -34,7 +35,7 @@ it('enforces strict typing for the is_active boolean field', function () {
     $user = User::factory()->make(['is_active' => 'invalid_string']);
 
     // Act & Assert
-    expect(fn() => $user->save())->toThrow(\Exception::class);
+    expect(fn () => $user->save())->toThrow(Exception::class);
 });
 
 it('updates a user successfully', function () {
@@ -70,4 +71,14 @@ it('has many-to-many relationship with roles', function () {
     // Assert
     expect($user->roles)->toHaveCount(1)
         ->and($user->roles->first()->id)->toBe($role->id);
+});
+
+it('has one-to-many relationship with email verifications', function () {
+    // Arrange
+    $user = User::factory()->create();
+    EmailVerification::factory()->create(['user_id' => $user->id]);
+
+    // Assert
+    expect($user->emailVerifications)->toHaveCount(1)
+        ->and($user->emailVerifications->first()->user_id)->toBe($user->id);
 });
