@@ -16,7 +16,7 @@ it('generates a cryptographically secure token with 15 minutes expiration time',
 
     // Assert
     expect(strlen($token))->toBe(64)
-        ->and($expiresAt->diffInMinutes($createdAt))->toBe($configuredExpirationMinutes)
+        ->and((int) $createdAt->diffInMinutes($expiresAt))->toBe($configuredExpirationMinutes)
         ->and($expiresAt->isFuture())->toBeTrue();
 });
 

@@ -3,12 +3,10 @@
 use App\Enums\HttpStatusCodeEnum as Status;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 
 uses(RefreshDatabase::class);
@@ -16,7 +14,7 @@ uses(RefreshDatabase::class);
 beforeEach(function (): void {
     $this->resetPasswordUrl = route('api.v1.auth.reset-password');
 
-    $this->createResetToken = function (string $email, string $plainToken, ?Carbon $createdAt = null): void {
+    $this->createResetToken = function (string $email, string $plainToken, ?DateTimeInterface $createdAt = null): void {
         DB::table('password_reset_tokens')->updateOrInsert(
             ['email' => $email],
             [
@@ -187,7 +185,7 @@ it('rejects password reset when token is expired beyond the allowable window', f
     // Arrange
     $rawToken = Str::random(64);
     $user = User::factory()->create(['email' => 'expired.token@example.com']);
-    
+
     // Configura token criado há 20 minutos (limite de expiração: 15 minutos)
     ($this->createResetToken)($user->email, $rawToken, now()->subMinutes(20));
 
@@ -325,7 +323,7 @@ it('enforces rate limiting by returning 429 too many requests after excessive fa
     for ($i = 0; $i < $maxAttempts; $i++) {
         $this->postJson($this->resetPasswordUrl, [
             'email' => $user->email,
-            'token' => 'invalid-token-' . $i,
+            'token' => 'invalid-token-'.$i,
             'password' => 'NewStrongP@ssw0rd1!',
             'password_confirmation' => 'NewStrongP@ssw0rd1!',
         ]);
@@ -362,19 +360,18 @@ it('prevents sensitive data including plain passwords tokens and pii from being 
     // Act
     $this->postJson($this->resetPasswordUrl, $payload);
 
-    // Assert
-    // Garante que nem a senha nem o token em texto limpo foram enviados para o logger
-    Log::shouldReceive('info')
-        ->withArgs(function ($message, $context = []) use ($plainPassword, $rawToken) {
-            $jsonMessage = json_encode([$message, $context]);
-            return !str_contains($jsonMessage, $plainPassword) && !str_contains($jsonMessage, $rawToken);
-        });
+    // Assert - Garante que nem a senha nem o token em texto limpo foram enviados para o logger
+    Log::shouldNotHaveReceived('info', function ($message, $context = []) use ($plainPassword, $rawToken) {
+        $jsonMessage = json_encode([$message, $context]);
 
-    Log::shouldReceive('error')
-        ->withArgs(function ($message, $context = []) use ($plainPassword, $rawToken) {
-            $jsonMessage = json_encode([$message, $context]);
-            return !str_contains($jsonMessage, $plainPassword) && !str_contains($jsonMessage, $rawToken);
-        });
+        return str_contains($jsonMessage, $plainPassword) || str_contains($jsonMessage, $rawToken);
+    });
+
+    Log::shouldNotHaveReceived('error', function ($message, $context = []) use ($plainPassword, $rawToken) {
+        $jsonMessage = json_encode([$message, $context]);
+
+        return str_contains($jsonMessage, $plainPassword) || str_contains($jsonMessage, $rawToken);
+    });
 });
 
 // ============================================================================
