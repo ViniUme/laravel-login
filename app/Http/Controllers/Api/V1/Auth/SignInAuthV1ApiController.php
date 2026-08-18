@@ -3,16 +3,15 @@
 namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Enums\HttpStatusCodeEnum;
-use App\Http\Controllers\Api\V1\Auth\AuthV1ApiController;
 use App\Http\Requests\Api\V1\Auth\SignInAuthV1ApiRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\RateLimiter;
 
 class SignInAuthV1ApiController extends AuthV1ApiController
 {
     private const int CODE_SUCCESS_OK = HttpStatusCodeEnum::SUCCESS_OK->value;
+
     private const int CODE_UNAUTHORIZED = HttpStatusCodeEnum::CLIENT_ERROR_UNAUTHORIZED->value;
 
     public function __invoke(SignInAuthV1ApiRequest $request): JsonResponse
@@ -40,13 +39,15 @@ class SignInAuthV1ApiController extends AuthV1ApiController
         return response()->json($responseBody, self::CODE_SUCCESS_OK);
     }
 
-    private function isUnauthorizedUser(User|null $user, SignInAuthV1ApiRequest $request): bool
+    private function isUnauthorizedUser(?User $user, SignInAuthV1ApiRequest $request): bool
     {
-        $invalidUser = !$user;
-        if ($invalidUser) return true;
+        $invalidUser = ! $user;
+        if ($invalidUser) {
+            return true;
+        }
 
-        $isInvalidPassword = !Hash::check($request->password, $user->password);
-        $isInactiveUser = !$user->is_active;
+        $isInvalidPassword = ! Hash::check($request->password, $user->password);
+        $isInactiveUser = ! $user->is_active;
 
         $isUnauthorizedUser = $isInvalidPassword || $isInactiveUser;
 

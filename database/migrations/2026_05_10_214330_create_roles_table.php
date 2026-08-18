@@ -19,7 +19,7 @@ return new class extends Migration
             $table->timestamps();
             $table->softDeletes();
         });
-        
+
         Schema::table('roles', function (Blueprint $table) {
             $table->foreign('parent_id')->references('id')->on('roles')->onDelete('cascade');
         });

@@ -1,9 +1,9 @@
 <?php
 
-use App\Models\User;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Enums\HttpStatusCodeEnum as Status;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 
 uses(RefreshDatabase::class);
 
@@ -127,9 +127,9 @@ it('should return 422 if password confirmation does not match', function () {
 
 it('should persist access token in personal_access_tokens table after successful sign up', function () {
     $response = $this->postJson($this->signUpUrl, [
-        'name'                  => 'John Doe',
-        'email'                 => 'john.doe@example.com',
-        'password'              => 'secretPassword123',
+        'name' => 'John Doe',
+        'email' => 'john.doe@example.com',
+        'password' => 'secretPassword123',
         'password_confirmation' => 'secretPassword123',
     ]);
 
@@ -139,7 +139,7 @@ it('should persist access token in personal_access_tokens table after successful
 
     $this->assertDatabaseHas('personal_access_tokens', [
         'tokenable_type' => User::class,
-        'tokenable_id'   => $user->id,
+        'tokenable_id' => $user->id,
     ]);
 
     expect($response->json('access_token'))->not->toBeNull()
@@ -152,9 +152,9 @@ it('should persist access token in personal_access_tokens table after successful
 
 it('should return 200 when accessing a protected route with token received on sign up', function () {
     $response = $this->postJson($this->signUpUrl, [
-        'name'                  => 'John Doe',
-        'email'                 => 'john.doe@example.com',
-        'password'              => 'secretPassword123',
+        'name' => 'John Doe',
+        'email' => 'john.doe@example.com',
+        'password' => 'secretPassword123',
         'password_confirmation' => 'secretPassword123',
     ]);
 
@@ -173,9 +173,9 @@ it('should return 200 when accessing a protected route with token received on si
 
 it('should return 422 and not create user with sql injection in email field', function () {
     $response = $this->postJson($this->signUpUrl, [
-        'name'                  => 'John Doe',
-        'email'                 => "' OR '1'='1",
-        'password'              => 'secretPassword123',
+        'name' => 'John Doe',
+        'email' => "' OR '1'='1",
+        'password' => 'secretPassword123',
         'password_confirmation' => 'secretPassword123',
     ]);
 
@@ -187,15 +187,15 @@ it('should return 422 and not create user with sql injection in email field', fu
 
 it('should return 422 and not create user with sql injection in name field', function () {
     $response = $this->postJson($this->signUpUrl, [
-        'name'                  => "'; DROP TABLE users; --",
-        'email'                 => 'john.doe@example.com',
-        'password'              => 'secretPassword123',
+        'name' => "'; DROP TABLE users; --",
+        'email' => 'john.doe@example.com',
+        'password' => 'secretPassword123',
         'password_confirmation' => 'secretPassword123',
     ]);
 
     $acceptedValues = [
         Status::SUCCESS_CREATED->value,
-        Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value
+        Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value,
     ];
 
     expect($response->status())->toBeIn($acceptedValues);
@@ -213,16 +213,16 @@ it('should return 422 and not create user with sql injection in name field', fun
 
 it('should not authenticate or break database with sql injection in password field', function () {
     $response = $this->postJson($this->signUpUrl, [
-        'name'                  => 'John Doe',
-        'email'                 => 'john.doe@example.com',
-        'password'              => "'; DROP TABLE users; --",
+        'name' => 'John Doe',
+        'email' => 'john.doe@example.com',
+        'password' => "'; DROP TABLE users; --",
         'password_confirmation' => "'; DROP TABLE users; --",
     ]);
 
     // Deve rejeitar por não atender os requisitos mínimos de senha ou aceitar e armazenar com hash
     $acceptedValues = [
         Status::SUCCESS_CREATED->value,
-        Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value
+        Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value,
     ];
     expect($response->status())->toBeIn($acceptedValues);
     expect($response->status())->not->toBe(Status::SERVER_ERROR_INTERNAL->value);
@@ -242,9 +242,9 @@ it('should not authenticate or break database with sql injection in password fie
 
 it('should not authenticate or break database with sql injection in password_confirmation field', function () {
     $response = $this->postJson($this->signUpUrl, [
-        'name'                  => 'John Doe',
-        'email'                 => 'john.doe@example.com',
-        'password'              => 'secretPassword123',
+        'name' => 'John Doe',
+        'email' => 'john.doe@example.com',
+        'password' => 'secretPassword123',
         'password_confirmation' => "'; DROP TABLE users; --",
     ]);
 
@@ -261,9 +261,9 @@ it('should not authenticate or break database with sql injection in password_con
 
 it('should return 422 if name contains only whitespace', function () {
     $response = $this->postJson($this->signUpUrl, [
-        'name'                  => '     ',
-        'email'                 => 'john.doe@example.com',
-        'password'              => 'secretPassword123',
+        'name' => '     ',
+        'email' => 'john.doe@example.com',
+        'password' => 'secretPassword123',
         'password_confirmation' => 'secretPassword123',
     ]);
 
@@ -273,9 +273,9 @@ it('should return 422 if name contains only whitespace', function () {
 
 it('should return 422 if email contains only whitespace', function () {
     $response = $this->postJson($this->signUpUrl, [
-        'name'                  => 'John Doe',
-        'email'                 => '     ',
-        'password'              => 'secretPassword123',
+        'name' => 'John Doe',
+        'email' => '     ',
+        'password' => 'secretPassword123',
         'password_confirmation' => 'secretPassword123',
     ]);
 
@@ -289,14 +289,14 @@ it('should return 422 if email contains only whitespace', function () {
 
 it('should create user with is_active set to false by default', function () {
     $this->postJson($this->signUpUrl, [
-        'name'                  => 'John Doe',
-        'email'                 => 'john.doe@example.com',
-        'password'              => 'secretPassword123',
+        'name' => 'John Doe',
+        'email' => 'john.doe@example.com',
+        'password' => 'secretPassword123',
         'password_confirmation' => 'secretPassword123',
     ])->assertStatus(Status::SUCCESS_CREATED->value);
 
     $this->assertDatabaseHas('users', [
-        'email'     => 'john.doe@example.com',
+        'email' => 'john.doe@example.com',
         'is_active' => false,
     ]);
 });

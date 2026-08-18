@@ -31,7 +31,7 @@ it('enforces unique constraint for the name field', function () {
     $duplicatePermission = Permission::factory()->make(['name' => 'unique-permission']);
 
     // Act & Assert
-    expect(fn() => $duplicatePermission->save())->toThrow(\Exception::class);
+    expect(fn () => $duplicatePermission->save())->toThrow(Exception::class);
 });
 
 it('updates a permission successfully', function () {

@@ -1,8 +1,8 @@
 <?php
 
+use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
-use App\Models\Permission;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
 
@@ -32,7 +32,7 @@ it('enforces unique constraint for the name field', function () {
     $duplicateRole = Role::factory()->make(['name' => 'unique-role']);
 
     // Act & Assert
-    expect(fn() => $duplicateRole->save())->toThrow(\Exception::class);
+    expect(fn () => $duplicateRole->save())->toThrow(Exception::class);
 });
 
 it('updates a role successfully', function () {

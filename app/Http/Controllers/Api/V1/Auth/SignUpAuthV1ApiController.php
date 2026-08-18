@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1\Auth;
 
 use App\Enums\HttpStatusCodeEnum;
-use App\Http\Controllers\Api\V1\Auth\AuthV1ApiController;
 use App\Http\Requests\Api\V1\Auth\SignUpAuthV1ApiRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;

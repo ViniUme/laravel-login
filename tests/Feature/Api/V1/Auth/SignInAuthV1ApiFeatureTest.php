@@ -1,10 +1,9 @@
 <?php
 
-use App\Models\User;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\RateLimiter;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use App\Enums\HttpStatusCodeEnum as Status;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 
 uses(RefreshDatabase::class);
 
@@ -265,7 +264,7 @@ it('should not authenticate with malicious characters in password field', functi
     // Deve retornar 401 ou 422 — nunca 200
     $acceptedCodes = [
         Status::CLIENT_ERROR_UNAUTHORIZED->value,
-        Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value
+        Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value,
     ];
     expect($response->status())->toBeIn($acceptedCodes);
     expect($response->status())->not->toBe(Status::SUCCESS_OK->value);
