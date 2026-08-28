@@ -4,6 +4,7 @@ use App\Enums\HttpStatusCodeEnum as Status;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Config;
 
 uses(RefreshDatabase::class);
 
@@ -333,4 +334,42 @@ it('should return 200 when authenticated user accesses a protected route with va
         ->getJson('/api/v1/user');
 
     $protectedResponse->assertStatus(Status::SUCCESS_OK->value);
+});
+
+it('validates response time of logins is similar to creted email and not created email', function () {
+    Config::set('hashing.bcrypt.rounds', 12);
+
+    $plainPassword = 'secret1234';
+
+    $user = User::factory()->create([
+        'email' => 'created@test.com',
+        'password' => Hash::make($plainPassword),
+        'is_active' => true
+    ]);
+
+    $payloadCreatedEmail = [
+        'email' => 'created@test.com',
+        'password' => 'wrong-password',
+    ];
+
+    $payloadNotCreatedEmail = [
+        'email' => 'notcreated@test.com',
+        'password' => 'wrong-password'
+    ];
+
+    # Warm-up
+    $this->postJson($this->signInUrl, $payloadCreatedEmail);
+
+    $startRequestTimeCreatedEmail = hrtime(true);
+    $this->postJson($this->signInUrl, $payloadCreatedEmail);
+    $timeCreatedEmail = (hrtime(true) - $startRequestTimeCreatedEmail) / 1e6;
+
+    $startRequestTimeNotCreatedEmail = hrtime(true);
+    $this->postJson($this->signInUrl, $payloadNotCreatedEmail);
+    $timeNotCreatedEmail = (hrtime(true) - $startRequestTimeNotCreatedEmail) / 1e6;
+
+    $responseTimeDifference = $timeCreatedEmail - $timeNotCreatedEmail;
+    $tolerableLimitMs = 50;
+
+    expect($responseTimeDifference)->toBeLessThan($tolerableLimitMs);
 });

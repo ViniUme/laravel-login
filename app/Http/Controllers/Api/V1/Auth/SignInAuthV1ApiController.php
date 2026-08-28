@@ -7,6 +7,7 @@ use App\Http\Requests\Api\V1\Auth\SignInAuthV1ApiRequest;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use App\Services\Auth\SecureAuthService;
 
 class SignInAuthV1ApiController extends AuthV1ApiController
 {
@@ -43,6 +44,10 @@ class SignInAuthV1ApiController extends AuthV1ApiController
     {
         $invalidUser = ! $user;
         if ($invalidUser) {
+            # Preventing a timing attack
+            $dummyHash = SecureAuthService::getDummyHash();
+            Hash::check('secret', $dummyHash);
+
             return true;
         }
 
