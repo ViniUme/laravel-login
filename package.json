@@ -33,7 +33,7 @@
         "@inertiajs/vite": "^3.0.0",
         "@inertiajs/vue3": "^3.0.0",
         "@lucide/vue": "^1.33.0",
-        "@tailwindcss/vite": "^4.1.11",
+        "@tailwindcss/vite": "^4.3.3",
         "@vitejs/plugin-vue": "^6.0.0",
         "@vueuse/core": "^12.8.2",
         "class-variance-authority": "^0.7.1",
@@ -42,7 +42,7 @@
         "laravel-vite-plugin": "^3.1",
         "reka-ui": "^2.10.3",
         "tailwind-merge": "^3.6.0",
-        "tailwindcss": "^4.1.1",
+        "tailwindcss": "^4.3.3",
         "typescript": "^5.2.2",
         "vite": "^8.0.0",
         "vue": "^3.5.13"
