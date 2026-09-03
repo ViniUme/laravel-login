@@ -26,29 +26,29 @@ const props = defineProps<{
     <div :class="cn('flex flex-col gap-6', props.class)">
         <Card>
             <CardHeader class="text-center">
-                <CardTitle class="text-xl"> Create your account </CardTitle>
+                <CardTitle class="text-xl">Crie sua conta</CardTitle>
                 <CardDescription>
-                    Enter your email below to create your account
+                    Cadastre seu email abaixo para criar sua conta
                 </CardDescription>
             </CardHeader>
             <CardContent>
                 <form>
                     <FieldGroup>
                         <Field>
-                            <FieldLabel for="name"> Full Name </FieldLabel>
+                            <FieldLabel for="name">Nome completo</FieldLabel>
                             <Input
                                 id="name"
                                 type="text"
-                                placeholder="John Doe"
+                                placeholder="João Siqueira"
                                 required
                             />
                         </Field>
                         <Field>
-                            <FieldLabel for="email"> Email </FieldLabel>
+                            <FieldLabel for="email">E-mail</FieldLabel>
                             <Input
                                 id="email"
                                 type="email"
-                                placeholder="m@example.com"
+                                placeholder="joao@exeplo.com"
                                 required
                             />
                         </Field>
@@ -56,7 +56,7 @@ const props = defineProps<{
                             <Field class="grid grid-cols-2 gap-4">
                                 <Field>
                                     <FieldLabel for="password">
-                                        Password
+                                        Senha
                                     </FieldLabel>
                                     <Input
                                         id="password"
@@ -66,7 +66,7 @@ const props = defineProps<{
                                 </Field>
                                 <Field>
                                     <FieldLabel for="confirm-password">
-                                        Confirm Password
+                                        Confirmar senha
                                     </FieldLabel>
                                     <Input
                                         id="confirm-password"
@@ -76,13 +76,13 @@ const props = defineProps<{
                                 </Field>
                             </Field>
                             <FieldDescription>
-                                Must be at least 8 characters long.
+                                Precisa ter no mínimo 8 caracteres.
                             </FieldDescription>
                         </Field>
                         <Field>
-                            <Button type="submit"> Create Account </Button>
+                            <Button type="submit">Criar conta</Button>
                             <FieldDescription class="text-center">
-                                Already have an account? <a href="#">Sign in</a>
+                                Já possui uma conta? <a href="#">Entrar</a>
                             </FieldDescription>
                         </Field>
                     </FieldGroup>
