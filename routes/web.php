@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Contrllers\Auth\SignUpAuthController;
+use App\Http\Controllers\Auth\SignUpAuthController;
 
 Route::inertia('/', 'Welcome')->name('home');
 
