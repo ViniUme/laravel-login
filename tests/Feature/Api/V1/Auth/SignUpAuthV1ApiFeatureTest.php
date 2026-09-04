@@ -23,14 +23,12 @@ it('should return 201 and create user on valid sign up data', function () {
 
     $response->assertStatus(Status::SUCCESS_CREATED->value)
         ->assertJsonStructure([
-            'user' => [
-                'id',
-                'name',
-                'email',
-                'created_at',
-                'updated_at',
-            ],
-            'access_token',
+            'status',
+            'message',
+            'body' => [
+                'access_token',
+                'token_type'
+            ]
         ]);
 
     // Validate that the password is NOT exposed in the JSON response
