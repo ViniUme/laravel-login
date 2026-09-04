@@ -140,8 +140,11 @@ it('should persist access token in personal_access_tokens table after successful
         'tokenable_id' => $user->id,
     ]);
 
-    expect($response->json('access_token'))->not->toBeNull()
-        ->and($response->json('access_token'))->not->toBe('');
+    $responseBody = $response->json('body');
+    $accessToken = $responseBody['access_token'];
+
+    expect($accessToken)->not->toBeNull()
+        ->and($accessToken)->not->toBe('');
 });
 
 // ============================================================
