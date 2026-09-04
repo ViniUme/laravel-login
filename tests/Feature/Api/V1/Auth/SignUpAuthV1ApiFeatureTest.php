@@ -161,7 +161,7 @@ it('should return 200 when accessing a protected route with token received on si
 
     $response->assertStatus(Status::SUCCESS_CREATED->value);
 
-    $token = $response->json('access_token');
+    $token = $response->json()['body']['access_token'];
 
     $this->withHeader('Authorization', "Bearer {$token}")
         ->getJson('/api/v1/user')
