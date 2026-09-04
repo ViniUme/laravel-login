@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue';
+import { Form } from '@inertiajs/vue3';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import {
@@ -16,6 +17,7 @@ import {
     FieldLabel,
 } from '@/components/ui/field';
 import { Input } from '@/components/ui/input';
+import SignUpAuthV1ApiController from '@/actions/App/Http/Controllers/Api/V1/Auth/SignUpAuthV1ApiController';
 
 const props = defineProps<{
     class?: HTMLAttributes['class'];
@@ -32,12 +34,13 @@ const props = defineProps<{
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <form>
+                <Form :action="SignUpAuthV1ApiController()">
                     <FieldGroup>
                         <Field>
                             <FieldLabel for="name">Nome completo</FieldLabel>
                             <Input
                                 id="name"
+                                name="name"
                                 type="text"
                                 placeholder="João Siqueira"
                                 required
@@ -47,6 +50,7 @@ const props = defineProps<{
                             <FieldLabel for="email">E-mail</FieldLabel>
                             <Input
                                 id="email"
+                                name="email"
                                 type="email"
                                 placeholder="joao@exeplo.com"
                                 required
@@ -60,16 +64,18 @@ const props = defineProps<{
                                     </FieldLabel>
                                     <Input
                                         id="password"
+                                        name="password"
                                         type="password"
                                         required
                                     />
                                 </Field>
                                 <Field>
-                                    <FieldLabel for="confirm-password">
+                                    <FieldLabel for="password_confirmation">
                                         Confirmar senha
                                     </FieldLabel>
                                     <Input
-                                        id="confirm-password"
+                                        id="password_confirmation"
+                                        name="password_confirmation"
                                         type="password"
                                         required
                                     />
@@ -86,7 +92,7 @@ const props = defineProps<{
                             </FieldDescription>
                         </Field>
                     </FieldGroup>
-                </form>
+                </Form>
             </CardContent>
         </Card>
     </div>
