@@ -34,6 +34,6 @@ class SignUpAuthV1ApiController extends AuthV1ApiController
             'token_type' => 'Bearer',
         ];
 
-        return response()->json($responseBody, self::CODE_SUCCESS_CREATED);
+        return self::apiResponse(self::CODE_SUCCESS_CREATED, 'Created', $responseBody);
     }
 }
