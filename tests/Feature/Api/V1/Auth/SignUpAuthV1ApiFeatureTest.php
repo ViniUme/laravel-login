@@ -301,3 +301,42 @@ it('should create user with is_active set to false by default', function () {
         'is_active' => false,
     ]);
 });
+
+it('should return 422 if the user name is longer than 255 characters', function () {
+    $longName = str_repeat('a', 256);
+
+    $response = $this->postJson($this->signUpUrl, [
+        'name' => $longName,
+        'email' => 'test@test.com',
+        'password' => 'testPassword',
+        'password_confirmation' => 'testPassword'
+    ]);
+
+    $response->assertStatus(422);
+});
+
+it('should return 422 if the user email is longer than 255 characteres', function () {
+    $longEmail = str_repeat('a', 256) . '@test.com';
+
+    $response = $this->postJson($this->signUpUrl, [
+        'name' => 'test',
+        'email' => $longEmail,
+        'password' => 'testPassword',
+        'password_confirmation' => 'testPassword'
+    ]);
+
+    $response->assertStatus(422);
+});
+
+it('should return 422 if the user password is longer than 255 characters', function () {
+    $longPassword = str_repeat('a', 256);
+
+    $response = $this->postJson($this->signUpUrl, [
+        'name' => 'test',
+        'email' => 'test@test.com',
+        'password' => $longPassword,
+        'password_confirmation' => $longPassword
+    ]);
+
+    $response->assertStatus(422);
+});
