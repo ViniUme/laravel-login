@@ -312,7 +312,7 @@ it('should return 422 if the user name is longer than 255 characters', function 
         'password_confirmation' => 'testPassword'
     ]);
 
-    $response->assertStatus(422);
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value);
 });
 
 it('should return 422 if the user email is longer than 255 characteres', function () {
@@ -325,7 +325,7 @@ it('should return 422 if the user email is longer than 255 characteres', functio
         'password_confirmation' => 'testPassword'
     ]);
 
-    $response->assertStatus(422);
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value);
 });
 
 it('should return 422 if the user password is longer than 255 characters', function () {
@@ -338,5 +338,5 @@ it('should return 422 if the user password is longer than 255 characters', funct
         'password_confirmation' => $longPassword
     ]);
 
-    $response->assertStatus(422);
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value);
 });
