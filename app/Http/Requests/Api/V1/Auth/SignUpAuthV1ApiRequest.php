@@ -30,6 +30,7 @@ class SignUpAuthV1ApiRequest extends FormRequest
                 'required',
                 'string',
                 'min:8',
+                'max:255',
                 'confirmed',
             ],
         ];
