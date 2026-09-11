@@ -340,3 +340,60 @@ it('should return 422 if the user password is longer than 255 characters', funct
 
     $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value);
 });
+
+it('should return 422 if the user´s password doesn´t contain at least one uppercase letter', function () {
+    $invalidPassword = 'test@test123';
+    $requestBody = [
+        'name' => 'test',
+        'email' => 'test@test.com',
+        'password' => $invalidPassword,
+        'password_confirmation' => $invalidPassword
+    ];
+
+    $response = $this->postJson($this->signUpUrl, $requestBody);
+
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value);
+});
+
+
+it('should return 422 if the user´s password doesn´t contain at least one lowercase letter', function () {
+    $invalidPassword = 'TEST@TEST1234';
+    $requestBody = [
+        'name' => 'test',
+        'email' => 'test@test.com',
+        'password' => $invalidPassword,
+        'password_confirmation' => $invalidPassword
+    ];
+
+    $response = $this->postJson($this->signUpUrl, $requestBody);
+
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value);
+});
+
+it('should return 422 if the user´s password doesn´t contain at least one special character', function () {
+    $invalidPassword = 'testTEST1234';
+    $requestBody = [
+        'name' => 'name',
+        'email' => 'test@test.com',
+        'password' => $invalidPassword,
+        'password_confirmation' => $invalidPassword
+    ];
+
+    $response = $this->postJson($this->signUpUrl, $requestBody);
+
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value);
+});
+
+it('should return 422 if the user´s password doesn´t contain at least one number', function () {
+    $invalidPassword = 'test@TESTE@test';
+    $requestBody = [
+        'name' => 'test',
+        'email' => 'test@test.com',
+        'password' => $invalidPassword,
+        'password_confirmation' => $invalidPassword
+    ];
+
+    $response = $this->postJson($this->signUpUrl, $requestBody);
+
+    $response->assertStatus(Status::CLIENT_ERROR_UNPROCESSABLE_ENTITY->value);
+});
